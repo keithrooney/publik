@@ -1,0 +1,79 @@
+---
+- name: provision user(s)
+  user:
+    name: admin
+    group: sudo
+    shell: /bin/bash
+
+- name: re-configure authorized keys
+  authorized_key:
+    user: admin
+    state: present
+    key: "{{ lookup('file', '/home/krooney/.ssh/admin/id_ecdsa.pub') }}"
+
+- name: purge authorized keys
+  file:
+    state: absent
+    path: '/home/{{ item.name }}/.ssh/authorized_keys'
+  with_items:
+    - name: root
+
+- name: update sudoer(s)
+  lineinfile:
+    path: '/etc/sudoers'
+    regexp: '^%sudo.*ALL=\(ALL:ALL\).*'
+    line: '%sudo   ALL=(ALL:ALL) NOPASSWD: ALL'
+    validate: '/usr/sbin/visudo -cf %s'
+
+- name: override sshd config
+  lineinfile:
+    path: '/etc/ssh/sshd_config'
+    regexp: '{{ item.regexp }}'
+    line: '{{ item.line }}'
+  with_items:
+    - regexp: '^.*PasswordAuthentication .*'
+      line: 'PasswordAuthentication no'
+    - regexp: '^.*PermitRootLogin .*'
+      line: 'PermitRootLogin no'
+
+- name: install aptitude
+  apt:
+    pkg: aptitude
+    state: present
+    update_cache: yes
+
+- name: upgrade packages
+  apt:
+    upgrade: safe
+
+- name: autoremove packages
+  apt:
+    autoremove: yes
+
+- name: install packages
+  apt:
+    name: "{{ packages }}"
+  vars:
+    packages:
+      - ufw
+      - acl
+
+- name: configure firewall default policy
+  ufw:
+    state: enabled
+    policy: reject
+
+- name: configure firewall default port(s)
+  ufw:
+    rule: "{{ item.rule }}"
+    port: "{{ item.port }}"
+    proto: "{{ item.protocol }}"
+  with_items:
+    - rule: allow
+      port: 22
+      protocol: tcp
+
+- name: restart ssh.
+  service:
+    name: ssh
+    state: restarted

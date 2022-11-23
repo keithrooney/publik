@@ -1,0 +1,5 @@
+[frankfurt]
+95.179.171.3
+
+[all:vars]
+ansible_python_interpreter=/usr/bin/python3

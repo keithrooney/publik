@@ -1,0 +1,11 @@
+[Unit]
+Description=The service file for Publik.
+After=network.target
+
+[Service]
+User=admin
+Group=sudo
+ExecStart=/home/admin/server
+
+[Install]
+WantedBy=multi-user.target

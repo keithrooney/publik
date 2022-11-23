@@ -1,0 +1,4 @@
+---
+backend:
+  directory: "{{ playbook_dir }}/../../backend"
+  workspace: "~/.publik/ansible/backend"

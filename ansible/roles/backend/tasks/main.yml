@@ -1,0 +1,43 @@
+---
+- name: build binary
+  delegate_to: localhost
+  become: no
+  block:
+
+  - name: create workspace
+    file:
+      path: "{{ backend.workspace }}"
+      state: directory
+
+  - name: build binary
+    command: "go build -o {{ backend.workspace }}/server"
+    args:
+      chdir: "{{ backend.directory }}/cmd/server"
+      creates: "{{ backend.workspace }}/server"
+
+- name: distribute binary
+  become: no
+  copy:
+    src: "{{ backend.workspace }}/server"
+    dest: "$HOME/server"
+    mode: "0755"
+    force: "yes"
+
+- name: open firewall
+  ufw:
+    rule: "allow"
+    port: "8080"
+    proto: "tcp"
+
+- name: configure service
+  copy:
+    src: etc/systemd/system/publik.service
+    dest: /etc/systemd/system/publik.service
+    force: "yes"
+
+- name: restart service
+  service:
+    name: publik
+    state: restarted
+    enabled: yes
+    daemon_reload: yes
